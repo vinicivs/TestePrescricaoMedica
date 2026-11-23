@@ -1,0 +1,49 @@
+<div class="picker">
+  <input
+    type="search"
+    class="input"
+    placeholder="Buscar medicamento ou princípio ativo..."
+    autocomplete="off"
+    [value]="term()"
+    (input)="onInput($any($event.target).value)"
+    (focus)="onFocus()"
+    (blur)="close()"
+    (keydown)="onKeydown($event)"
+  />
+
+  @if (open()) {
+    <div class="picker__panel">
+      @if (loading()) {
+        <div class="picker__hint">Buscando...</div>
+      }
+
+      <ul class="selection-list" role="listbox">
+        @for (medication of results(); track medication.id; let i = $index) {
+          <li
+            role="option"
+            class="selection-list__row"
+            [class.selection-list__row--active]="i === activeIndex()"
+            [attr.aria-selected]="i === activeIndex()"
+            (mousedown)="choose(medication)"
+          >
+            <strong>{{ medication.name }}</strong>
+            @if (medication.concentration) {
+              <span> {{ medication.concentration }}</span>
+            }
+            <small>{{ medication.pharmaceuticalForm }} · {{ medication.activeIngredient }}</small>
+          </li>
+        } @empty {
+          @if (!loading()) {
+            <li class="picker__hint">Nenhum medicamento cadastrado encontrado.</li>
+          }
+        }
+      </ul>
+
+      @if (term().trim()) {
+        <button type="button" class="picker__free" (mousedown)="useTypedName()">
+          Prescrever "{{ term().trim() }}" (não cadastrado / manipulado)
+        </button>
+      }
+    </div>
+  }
+</div>

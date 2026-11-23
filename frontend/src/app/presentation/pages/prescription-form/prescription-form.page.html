@@ -1,0 +1,171 @@
+<section class="page">
+  <header class="page__header">
+    <h1>{{ isEdit ? 'Editar prescrição #' + id() : 'Nova prescrição' }}</h1>
+    <a class="btn" routerLink="/prescriptions">Cancelar</a>
+  </header>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <fieldset class="card">
+      <legend>Paciente e prescritor</legend>
+      <div class="grid grid--4">
+        <label class="field field--span-2">
+          <span>Paciente *</span>
+          <select class="input" formControlName="patientId" [class.input--invalid]="invalid('patientId')">
+            <option [ngValue]="null" disabled>Selecione...</option>
+            @for (patient of patients(); track patient.id) {
+              <option [ngValue]="patient.id">{{ patient.fullName }}</option>
+            }
+          </select>
+        </label>
+        <label class="field field--span-2">
+          <span>Nome do prescritor *</span>
+          <input class="input" formControlName="prescriberName" [class.input--invalid]="invalid('prescriberName')" />
+        </label>
+        <label class="field">
+          <span>Conselho *</span>
+          <input class="input" formControlName="prescriberCouncil" [class.input--invalid]="invalid('prescriberCouncil')" />
+        </label>
+        <label class="field">
+          <span>Número *</span>
+          <input class="input" formControlName="prescriberCouncilNumber" [class.input--invalid]="invalid('prescriberCouncilNumber')" />
+        </label>
+        <label class="field">
+          <span>UF *</span>
+          <input class="input" maxlength="2" formControlName="prescriberCouncilState" [class.input--invalid]="invalid('prescriberCouncilState')" />
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset class="card">
+      <legend>Tipo de receita</legend>
+      <div class="segmented">
+        <label>
+          <input type="radio" formControlName="type" value="Structured" />
+          Estruturada (ECF.10.03)
+        </label>
+        <label>
+          <input type="radio" formControlName="type" value="Unstructured" />
+          Texto livre (ECF.10.01)
+        </label>
+      </div>
+    </fieldset>
+
+    @if (type === 'Unstructured') {
+      <fieldset class="card">
+        <legend>Receita em texto livre</legend>
+        <textarea
+          class="input textarea"
+          rows="10"
+          formControlName="freeText"
+          placeholder="Descreva os medicamentos/princípios ativos, posologia e orientações..."
+        ></textarea>
+        <small class="muted">{{ form.controls.freeText.value.length }} / {{ freeTextMaxLength }}</small>
+      </fieldset>
+    } @else {
+      <fieldset class="card" formArrayName="items">
+        <legend>Medicamentos</legend>
+
+        @for (item of items.controls; track item; let i = $index) {
+          <div class="item-editor" [formGroupName]="i">
+            <div class="item-editor__header">
+              <strong>Item {{ i + 1 }}</strong>
+              <button type="button" class="btn btn--small btn--danger" (click)="removeItem(i)">Remover</button>
+            </div>
+
+            @if (item.controls.medicationName.value) {
+              <div class="selected-medication">
+                <span>{{ item.controls.medicationName.value }}</span>
+                @if (item.controls.medicationId.value === null) {
+                  <span class="badge badge--warn">Não cadastrado</span>
+                }
+                <button type="button" class="btn btn--small" (click)="clearMedication(item)">Trocar</button>
+              </div>
+            } @else {
+              <app-medication-picker
+                (selected)="selectMedication(item, $event)"
+                (freeText)="useFreeName(item, $event)"
+              />
+              @if (item.controls.medicationName.touched && item.controls.medicationName.invalid) {
+                <small class="error-text">Selecione um medicamento ou informe um nome.</small>
+              }
+            }
+
+            <div class="grid grid--4">
+              <label class="field">
+                <span>Forma farmacêutica *</span>
+                <input class="input" list="pharmaceutical-forms" formControlName="pharmaceuticalForm" />
+              </label>
+              <label class="field">
+                <span>Dose *</span>
+                <input class="input" type="number" min="0" step="any" formControlName="dose" />
+              </label>
+              <label class="field">
+                <span>Unidade *</span>
+                <input class="input" placeholder="mg, mL, comprimido..." formControlName="doseUnit" />
+              </label>
+              <label class="field">
+                <span>Frequência *</span>
+                <input class="input" list="frequencies" formControlName="frequency" />
+              </label>
+              <label class="field">
+                <span>Via de administração *</span>
+                <input class="input" list="routes" formControlName="administrationRoute" />
+              </label>
+              <label class="field">
+                <span>Início do tratamento *</span>
+                <input class="input" type="date" formControlName="startDate" />
+              </label>
+              <label class="field">
+                <span>Duração (dias)</span>
+                <input class="input" type="number" min="1" formControlName="durationDays" />
+              </label>
+              <label class="field">
+                <span>Prazo de utilização</span>
+                <input class="input" type="date" formControlName="usageDeadline" />
+              </label>
+              <label class="checkbox">
+                <input type="checkbox" formControlName="continuousUse" />
+                Uso contínuo
+              </label>
+              <label class="field field--span-3">
+                <span>Observação</span>
+                <input class="input" formControlName="notes" />
+              </label>
+            </div>
+          </div>
+        } @empty {
+          <p class="muted">Nenhum medicamento adicionado.</p>
+        }
+
+        <button type="button" class="btn" (click)="addItem()">+ Adicionar medicamento</button>
+      </fieldset>
+    }
+
+    @if (error()) {
+      <div class="alert alert--error">{{ error() }}</div>
+    }
+
+    <div class="form-actions">
+      <a class="btn" routerLink="/prescriptions">Cancelar</a>
+      <button type="submit" class="btn btn--primary" [disabled]="saving()">
+        {{ saving() ? 'Salvando...' : 'Salvar prescrição' }}
+      </button>
+    </div>
+  </form>
+
+  <datalist id="pharmaceutical-forms">
+    @for (option of pharmaceuticalForms; track option) {
+      <option [value]="option"></option>
+    }
+  </datalist>
+  <datalist id="routes">
+    @for (option of routes; track option) {
+      <option [value]="option"></option>
+    }
+  </datalist>
+  <datalist id="frequencies">
+    @for (option of frequencies; track option) {
+      <option [value]="option"></option>
+    }
+  </datalist>
+</section>

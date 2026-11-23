@@ -1,0 +1,77 @@
+<section class="page">
+  @if (error()) {
+    <div class="alert alert--error">{{ error() }}</div>
+  }
+
+  @if (prescription(); as p) {
+    <header class="page__header no-print">
+      <div>
+        <h1>Prescrição #{{ p.id }}</h1>
+        <span class="badge" [class.badge--alt]="p.type === 'Unstructured'">{{ typeLabels[p.type] }}</span>
+      </div>
+      <div class="actions">
+        <a class="btn" routerLink="/prescriptions">Voltar</a>
+        <button type="button" class="btn" (click)="print()">Imprimir</button>
+        <a class="btn btn--primary" [routerLink]="['/prescriptions', p.id, 'edit']">Editar</a>
+        <button type="button" class="btn btn--danger" (click)="remove(p)">Excluir</button>
+      </div>
+    </header>
+
+    <article class="card prescription-doc">
+      <dl class="details">
+        <div><dt>Paciente</dt><dd>{{ p.patientName }}</dd></div>
+        <div><dt>Prescritor</dt><dd>{{ p.prescriber.name }}</dd></div>
+        <div>
+          <dt>Conselho</dt>
+          <dd>{{ p.prescriber.council }} {{ p.prescriber.councilNumber }}/{{ p.prescriber.councilState }}</dd>
+        </div>
+        <div><dt>Emissão</dt><dd>{{ p.issuedAt | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
+        @if (p.updatedAt) {
+          <div><dt>Última alteração</dt><dd>{{ p.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
+        }
+      </dl>
+
+      @if (p.type === 'Unstructured') {
+        <h2>Receita</h2>
+        <pre class="free-text">{{ p.freeText }}</pre>
+      } @else {
+        <h2>Medicamentos</h2>
+        <ol class="item-list">
+          @for (item of p.items; track item.id) {
+            <li class="item-card">
+              <div class="item-card__title">
+                <strong>{{ item.medicationName }}</strong>
+                @if (!item.medicationId) {
+                  <span class="badge badge--warn">Não cadastrado</span>
+                }
+              </div>
+              <div class="item-card__grid">
+                <span><b>Forma:</b> {{ item.pharmaceuticalForm }}</span>
+                <span><b>Dose:</b> {{ item.dose | number: '1.0-3' }} {{ item.doseUnit }}</span>
+                <span><b>Frequência:</b> {{ item.frequency }}</span>
+                <span><b>Via:</b> {{ item.administrationRoute }}</span>
+                <span><b>Início:</b> {{ item.startDate | date: 'dd/MM/yyyy' }}</span>
+                <span>
+                  <b>Duração:</b>
+                  {{ item.continuousUse ? 'Uso contínuo' : item.durationDays + ' dia(s)' }}
+                </span>
+                @if (item.usageDeadline) {
+                  <span><b>Prazo de utilização:</b> {{ item.usageDeadline | date: 'dd/MM/yyyy' }}</span>
+                }
+              </div>
+              @if (item.notes) {
+                <p class="muted"><b>Obs.:</b> {{ item.notes }}</p>
+              }
+            </li>
+          }
+        </ol>
+      }
+
+      <div class="signature print-only">
+        <span>{{ p.prescriber.name }} — {{ p.prescriber.council }} {{ p.prescriber.councilNumber }}/{{ p.prescriber.councilState }}</span>
+      </div>
+    </article>
+  } @else if (!error()) {
+    <p class="muted">Carregando...</p>
+  }
+</section>

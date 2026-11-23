@@ -1,0 +1,73 @@
+<section class="page">
+  <header class="page__header">
+    <div>
+      <h1>Prescrições médicas</h1>
+      <p class="muted">{{ total() }} prescrição(ões) encontrada(s)</p>
+    </div>
+    <a class="btn btn--primary" routerLink="/prescriptions/new">Nova prescrição</a>
+  </header>
+
+  <div class="toolbar">
+    <input
+      type="search"
+      class="input"
+      placeholder="Filtrar por paciente..."
+      [value]="search()"
+      (input)="onSearch($any($event.target).value)"
+    />
+    <select class="input input--auto" [value]="type() ?? ''" (change)="onTypeChange($any($event.target).value)">
+      <option value="">Todos os tipos</option>
+      <option value="Structured">Estruturada</option>
+      <option value="Unstructured">Texto livre</option>
+    </select>
+  </div>
+
+  @if (error()) {
+    <div class="alert alert--error">{{ error() }}</div>
+  }
+
+  <div class="card table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th class="sortable" (click)="sortBy('patientName')">Paciente {{ sortIndicator('patientName') }}</th>
+          <th class="sortable" (click)="sortBy('prescriberName')">Prescritor {{ sortIndicator('prescriberName') }}</th>
+          <th>Tipo</th>
+          <th>Itens</th>
+          <th class="sortable" (click)="sortBy('issuedAt')">Emissão {{ sortIndicator('issuedAt') }}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of items(); track item.id) {
+          <tr>
+            <td>{{ item.id }}</td>
+            <td>{{ item.patientName }}</td>
+            <td>{{ item.prescriberName }}</td>
+            <td>
+              <span class="badge" [class.badge--alt]="item.type === 'Unstructured'">{{ typeLabels[item.type] }}</span>
+            </td>
+            <td>{{ item.type === 'Structured' ? item.itemCount : '—' }}</td>
+            <td>{{ item.issuedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+            <td class="actions">
+              <a class="btn btn--small" [routerLink]="['/prescriptions', item.id]">Ver</a>
+              <a class="btn btn--small" [routerLink]="['/prescriptions', item.id, 'edit']">Editar</a>
+              <button type="button" class="btn btn--small btn--danger" (click)="remove(item)">Excluir</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="7" class="empty">{{ loading() ? 'Carregando...' : 'Nenhuma prescrição encontrada.' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <nav class="pagination">
+    <button type="button" class="btn btn--small" [disabled]="page() <= 1" (click)="goTo(page() - 1)">Anterior</button>
+    <span>Página {{ page() }} de {{ totalPages }}</span>
+    <button type="button" class="btn btn--small" [disabled]="page() >= totalPages" (click)="goTo(page() + 1)">Próxima</button>
+  </nav>
+</section>
