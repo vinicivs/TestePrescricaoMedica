@@ -1,0 +1,54 @@
+name: medical-prescription
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: prescription-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_pwd}
+      MYSQL_DATABASE: prescriptions
+      MYSQL_USER: prescription_app
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-prescription_app_pwd}
+      TZ: UTC
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  api:
+    build:
+      context: ./backend
+    image: medical-prescription-api:local
+    container_name: prescription-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: "Server=mysql;Port=3306;Database=prescriptions;User=prescription_app;Password=${MYSQL_PASSWORD:-prescription_app_pwd}"
+      Cors__AllowedOrigins__0: "http://localhost:4200"
+    ports:
+      - "${API_PORT:-8080}:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./frontend
+    image: medical-prescription-web:local
+    container_name: prescription-web
+    environment:
+      API_URL: http://api:8080
+    ports:
+      - "${WEB_PORT:-4200}:8080"
+    depends_on:
+      - api
+
+volumes:
+  mysql-data:
